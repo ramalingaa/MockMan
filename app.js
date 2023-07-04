@@ -4,6 +4,8 @@ const submitAnswerBtn = document.querySelector("#submit-answer")
 const headerParent = document.querySelector("#header-parent")
 const recordingStartedElement = document.createElement("p")
 const interviewStartedElement = document.createElement("p")
+const transcribeButton = document.querySelector("#transcribe-btn")
+let audioFIle;
 headerParent.appendChild(interviewStartedElement)
 let recordingTime = 0;
 let recordingTimeId;
@@ -31,7 +33,7 @@ const voiceList = () => {
 voiceList();
 const data = {
   question:
-    "What is the difference between let, constant, and var in Javascript"
+    "What"
 };
 //function to handle speak
 const speak = () => {
@@ -58,9 +60,11 @@ const speak = () => {
                 userMediaData.push(e.data);
               };
               mediaRecord.onstop = (e) => {
+                console.log(userMediaData)
                 const audioData = new Blob(userMediaData, {
-                  type: "audio/ogg; codecs=opus"
+                  type: "audio/wav; codecs=opus"
                 });
+                audioFIle = userMediaData
                 audio.src = window.URL.createObjectURL(audioData);
                 userMediaData = [];
               };
@@ -101,5 +105,30 @@ const submitClickHandler = () => {
   speak();
   isStarted = true
 };
+const transcribeAudio = async () => {
+  // const audioData = document.querySelector("#audio").files[0]
+  // console.log(audioData);
 
+  const file = new File(audioFIle, "audio.wav", {
+    type: "audio/wav"
+  })
+  console.log(file.type)
+  const token = "BHJESKMNQM2YFO2A2FRMMZFWQZ3P4D3D"
+ const result = await fetch("https://api.wit.ai/speech?v=20230215", {
+    method: "POST",
+    headers: {
+      "authorization": "Bearer " + token,
+      "Content-Type": "audio/wav",
+      "Transfer-encoding": "chunked"
+
+    },
+    body: file,
+  })
+console.log(await result.json())
+}
 submitButton.addEventListener("click", submitClickHandler);
+transcribeButton.addEventListener("click", transcribeAudio)
+
+// https://api.wit.ai/dictation
+//"Authorization: Bearer $TOKEN" \
+// -H "Content-Type: audio/wav" \
