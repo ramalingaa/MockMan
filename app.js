@@ -1,11 +1,12 @@
 const submitButton = document.querySelector("#submit-btn");
-const audio = document.querySelector("#audio");
+const  audio = document.querySelector("#audio");
 const submitAnswerBtn = document.querySelector("#submit-answer")
 const headerParent = document.querySelector("#header-parent")
 const recordingStartedElement = document.createElement("p")
 const interviewStartedElement = document.createElement("p")
 const transcribeButton = document.querySelector("#transcribe-btn")
 let audioFIle;
+let audioInBase64;
 headerParent.appendChild(interviewStartedElement)
 let recordingTime = 0;
 let recordingTimeId;
@@ -14,7 +15,6 @@ const synth = window.speechSynthesis;
 let voices = [];
 let audioCtx = new AudioContext();
 let recording = false;
-
 //voice list available from speech API
 const voiceList = () => {
   voices = synth.getVoices().sort(function (a, b) {
@@ -60,9 +60,8 @@ const speak = () => {
                 userMediaData.push(e.data);
               };
               mediaRecord.onstop = (e) => {
-                console.log(userMediaData)
                 const audioData = new Blob(userMediaData, {
-                  type: "audio/wav; codecs=opus"
+                  type: "audio/flac;"
                 });
                 audioFIle = userMediaData
                 audio.src = window.URL.createObjectURL(audioData);
@@ -101,34 +100,48 @@ const speak = () => {
   }
 };
 
-const submitClickHandler = () => {
+const submitClickHandler = (e) => {
+  e.preventDefault()
+
   speak();
   isStarted = true
 };
-const transcribeAudio = async () => {
-  // const audioData = document.querySelector("#audio").files[0]
-  // console.log(audioData);
-
-  const file = new File(audioFIle, "audio.wav", {
-    type: "audio/wav"
+const transcribeAudio = async (e) => {
+  e.preventDefault()
+  const file = new File(audioFIle, "audio.flac", {
+    type: "audio/flac"
   })
-  console.log(file.type)
-  const token = "BHJESKMNQM2YFO2A2FRMMZFWQZ3P4D3D"
- const result = await fetch("https://api.wit.ai/speech?v=20230215", {
-    method: "POST",
-    headers: {
-      "authorization": "Bearer " + token,
-      "Content-Type": "audio/wav",
-      "Transfer-encoding": "chunked"
-
-    },
-    body: file,
-  })
-console.log(await result.json())
+  async function audioToBase64(file) {
+    return new Promise((resolve, reject) => {
+      let reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
+  
+    audioInBase64 =  await audioToBase64(file)
+   
+    // const flacFileWithBase64 = audioInBase64.replace("data:audio/flac;base64,", "")
+   let  body = {
+      audioData: audioInBase64
+    }
+    console.log(audioInBase64)
+  
+    const result =  fetch("http://localhost:8081/convert-audio", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }).then((result) => result.json()).then((data) => console.log(data)).catch((err) => console.log(err))
+  
+   
+   
+  
 }
 submitButton.addEventListener("click", submitClickHandler);
 transcribeButton.addEventListener("click", transcribeAudio)
 
-// https://api.wit.ai/dictation
-//"Authorization: Bearer $TOKEN" \
-// -H "Content-Type: audio/wav" \
+
+
