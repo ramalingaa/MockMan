@@ -5,6 +5,7 @@ const headerParent = document.querySelector("#header-parent")
 const recordingStartedElement = document.createElement("p")
 const interviewStartedElement = document.createElement("p")
 const transcribeButton = document.querySelector("#transcribe-btn")
+const downloadLink = document.querySelector("#download-link")
 let audioFIle;
 let audioInBase64;
 headerParent.appendChild(interviewStartedElement)
@@ -15,6 +16,7 @@ const synth = window.speechSynthesis;
 let voices = [];
 let audioCtx = new AudioContext();
 let recording = false;
+
 //voice list available from speech API
 const voiceList = () => {
   voices = synth.getVoices().sort(function (a, b) {
@@ -33,7 +35,7 @@ const voiceList = () => {
 voiceList();
 const data = {
   question:
-    "What"
+    "What is the difference between Var, let and const in Javascript"
 };
 //function to handle speak
 const speak = () => {
@@ -55,16 +57,20 @@ const speak = () => {
             .getUserMedia({ audio: true })
             .then((mediaData) => {
               const mediaRecord = new MediaRecorder(mediaData);
+              
               let userMediaData = [];
               mediaRecord.ondataavailable = (e) => {
                 userMediaData.push(e.data);
               };
               mediaRecord.onstop = (e) => {
                 const audioData = new Blob(userMediaData, {
-                  type: "audio/flac;"
+                  type: "audio/wav; codecs=opus"
                 });
-                audioFIle = userMediaData
+                audioFIle = audioData
                 audio.src = window.URL.createObjectURL(audioData);
+                downloadLink.href = window.URL.createObjectURL(audioData)
+                downloadLink.download = "audio.wav"
+                downloadLink.innerHTML = downloadLink.download
                 userMediaData = [];
               };
               if (!recording) {
@@ -108,36 +114,17 @@ const submitClickHandler = (e) => {
 };
 const transcribeAudio = async (e) => {
   e.preventDefault()
-  const file = new File(audioFIle, "audio.flac", {
-    type: "audio/flac"
-  })
-  async function audioToBase64(file) {
-    return new Promise((resolve, reject) => {
-      let reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  }
-  
-    audioInBase64 =  await audioToBase64(file)
+  const formData = new FormData();
+  formData.append('myfile', audioFIle)
    
-    // const flacFileWithBase64 = audioInBase64.replace("data:audio/flac;base64,", "")
-   let  body = {
-      audioData: audioInBase64
-    }
-    console.log(audioInBase64)
-  
-    const result =  fetch("http://localhost:8081/convert-audio", {
+   const  params = {
       method: "POST",
-      body: JSON.stringify(body),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }).then((result) => result.json()).then((data) => console.log(data)).catch((err) => console.log(err))
+      body: formData
+    }
+    const url = "http://localhost:8081/convert-audio"
   
-   
-   
+    fetch(url, params).then((result) => result.json()).then((data) => console.log(data)).catch((err) => console.log(err))
+  
   
 }
 submitButton.addEventListener("click", submitClickHandler);
